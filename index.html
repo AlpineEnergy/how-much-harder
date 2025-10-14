@@ -4,25 +4,25 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>How Much Harder Does Jeff Bezos Work Than You?</title>
+  <meta name="description" content="Compare earnings per hour, required hours to match annual income, workforce equivalents, and simple tax-parity experiments." />
   <link rel="stylesheet" href="styles.css" />
-  <meta name="description" content="A satirical, data-driven inequality visualizer that compares your earnings to those of billionaires, framed as 'work harder' metrics." />
 </head>
 <body>
   <header class="container">
     <h1>How Much Harder Does <span id="billionaireNameTitle">Jeff Bezos</span> Work Than You?</h1>
-    <p class="tagline">Enter your details to see the <em>Work Multiplier</em>, the time it takes them to earn your salary, and how hard you'd have to work to catch up.</p>
+    <p class="tagline">Enter your details to explore hourly comparisons, required hours, workforce equivalents, and an easy tax-parity experiment. Assumptions are simple so you can draw your own conclusions.</p>
   </header>
 
   <main class="container grid">
     <section class="card">
       <h2>1) Your Details</h2>
       <form id="inputForm" class="form-grid">
-        <label>
+        <label for="billionaireSelect">
           Choose a billionaire
           <select id="billionaireSelect" required></select>
         </label>
 
-        <label>
+        <label for="currencySelect">
           Currency
           <select id="currencySelect">
             <option value="EUR" selected>EUR — €</option>
@@ -35,7 +35,7 @@
           </select>
         </label>
 
-        <label>
+        <label for="salary">
           Your annual salary
           <div class="input-wrap">
             <span class="prefix" id="currencyPrefix">€</span>
@@ -43,20 +43,25 @@
           </div>
         </label>
 
-        <label>
+        <label for="hoursPerWeek">
           Your average hours per week
           <input id="hoursPerWeek" type="number" min="1" max="168" step="1" placeholder="e.g. 40" required />
         </label>
 
-        <button class="primary" type="submit">Compare Our Work Ethic</button>
+        <button class="primary" type="submit">Compare</button>
       </form>
-      <p class="hint">Tip: Data uses rough figures in EUR under the hood. We convert to your chosen currency using simple, built‑in rates for the satire.</p>
+      <p class="hint">Assumptions are simplified. Edit the data in <code>app.js</code> if you want different inputs.</p>
     </section>
 
     <section class="card">
-      <h2>2) Work-Ethic Breakdown</h2>
+      <h2>2) Comparison</h2>
       <div id="results" class="results hidden">
         <div class="stats-grid">
+          <div class="stat highlight">
+            <div class="label">Work Multiplier</div>
+            <div class="value" id="workMultiplier">—</div>
+            <div class="sub">Their hourly ÷ your hourly</div>
+          </div>
           <div class="stat">
             <div class="label">Your income per hour</div>
             <div class="value" id="youPerHour">—</div>
@@ -65,19 +70,24 @@
             <div class="label"><span id="billionaireNameA">Jeff Bezos</span> per hour</div>
             <div class="value" id="billPerHour">—</div>
           </div>
-          <div class="stat highlight">
-            <div class="label">Work Multiplier</div>
-            <div class="value" id="workMultiplier">—</div>
-            <div class="sub">“Apparently” how much harder they work</div>
+          <div class="stat">
+            <div class="label">Time for <span id="billionaireNameB">Jeff Bezos</span> to earn your annual salary</div>
+            <div class="value" id="timeToYourSalary">—</div>
           </div>
           <div class="stat">
-            <div class="label">Time to earn your annual salary</div>
-            <div class="value" id="timeToYourSalary">—</div>
-            <div class="sub"><span id="billionaireNameB">Jeff Bezos</span> at their pace</div>
+            <div class="label">Hours/week you'd need to match their <u>annual income</u></div>
+            <div class="value" id="requiredHoursAnnual">—</div>
+            <div class="sub" id="requiredAnnualNote">Shown for scale; often beyond human capacity.</div>
+            <div class="sub"><button id="grindTo168" class="ghost small">Set simulator to 168 h and show gap</button></div>
+          </div>
+          <div class="stat">
+            <div class="label">“How many of you” to match their <u>annual income</u></div>
+            <div class="value" id="youEquivalentsAnnual">—</div>
+            <div class="sub">At your current schedule</div>
           </div>
         </div>
 
-        <div class="ticker">
+        <div class="ticker" aria-live="polite">
           <div class="ticker-row">
             <span class="who" id="billionaireNameC">Jeff Bezos</span>
             <span class="earned">earned since you opened this tab:</span>
@@ -89,51 +99,165 @@
             <span class="amount" id="youSinceLoad">—</span>
           </div>
         </div>
+
+        <div class="quick-actions">
+          <button class="ghost" data-mins="3">Make coffee (3 min)</button>
+          <button class="ghost" data-mins="30">Lunch (30 min)</button>
+          <button class="ghost" data-mins="480">Sleep (8 h)</button>
+        </div>
+        <div id="presetOut" class="preset-out" aria-live="polite"></div>
       </div>
       <div id="placeholder" class="placeholder">
-        Fill the form and hit <strong>Compare Our Work Ethic</strong> to see results.
+        Enter your details and select <strong>Compare</strong> to see results.
       </div>
     </section>
 
     <section class="card">
-      <h2>3) Work Harder Simulator</h2>
+      <h2>3) Work Hours Simulator</h2>
       <div id="simulator" class="hidden">
-        <label for="hoursSlider">Your hours per week: <span id="hoursLabel">40</span>h</label>
+        <div class="sim-top">
+          <label for="hoursSlider">Your hours per week: <span id="hoursLabel">40</span> h</label>
+          <button id="grindBtn" class="ghost small">Activate Grind Mode</button>
+        </div>
         <input id="hoursSlider" type="range" min="1" max="168" step="1" value="40" />
+        <div class="sim-row">
+          <label class="toggle"><input id="lockHourly" type="checkbox" checked /> Lock hourly (adjust salary in simulator)</label>
+        </div>
         <div class="sim-stats">
           <div>
-            <div class="small-label">Your new hourly rate</div>
+            <div class="small-label">Your hourly (sim)</div>
             <div class="big" id="simYouPerHour">—</div>
+            <div class="small-label" id="simNote"></div>
           </div>
           <div>
-            <div class="small-label">New Work Multiplier</div>
+            <div class="small-label">Work Multiplier (sim)</div>
             <div class="big" id="simWorkMultiplier">—</div>
           </div>
           <div>
-            <div class="small-label">Years to reach their net worth*</div>
+            <div class="small-label">Years to reach their net worth (sim)</div>
             <div class="big" id="yearsToNetWorth">—</div>
           </div>
         </div>
-        <p class="fineprint">*Assumes you could save your entire salary and nothing else changes. Yes, it's absurd — that's the point.</p>
-        <button id="grindBtn" class="ghost">Activate Grind Mode 💪</button>
-        <p id="grindMsg" class="grind hidden">You are now working 24/7. <span id="billionaireNameD">Jeff Bezos</span> still earns your annual salary in <strong id="salarySeconds">—</strong>.</p>
+        <div id="grindInfo" class="fineprint hidden"></div>
+        <p class="fineprint">*Assumes saving 100% of income; purely illustrative.</p>
       </div>
     </section>
 
     <section class="card">
-      <h2>About the Numbers</h2>
-      <p>This is a satirical tool. Billionaire data below is illustrative and editable in <code>app.js</code>. For a production site, replace with live data (e.g., Forbes/Bloomberg) and document your assumptions.</p>
-      <ul class="about">
-        <li>All base values are stored in EUR, then converted to your chosen currency with simple built-in rates.</li>
+      <h2>4) Workforce Equivalents</h2>
+      <div class="form-grid">
+        <label for="companySelect">
+          Company context
+          <select id="companySelect">
+            <option value="amazon" selected>Amazon (illustrative)</option>
+            <option value="tesla">Tesla (illustrative)</option>
+          </select>
+        </label>
+        <label for="roleSelect">
+          Typical role
+          <select id="roleSelect">
+            <option value="teacher">Teacher</option>
+            <option value="nurse">Nurse</option>
+            <option value="firefighter">Firefighter</option>
+            <option value="accountant">Accountant</option>
+            <option value="warehouse">Warehouse associate</option>
+            <option value="driver">Delivery driver</option>
+          </select>
+        </label>
+        <label for="fairWage">
+          Annual wage for this role
+          <div class="input-wrap">
+            <span class="prefix" id="currencyPrefixFW">€</span>
+            <input id="fairWage" type="number" min="10000" step="1000" placeholder="e.g. 35000" />
+          </div>
+        </label>
+      </div>
+      <div class="stats-grid">
+        <div class="stat">
+          <div class="label">Workers to match their annual income</div>
+          <div class="value" id="workersAnnual">—</div>
+        </div>
+        <div class="stat">
+          <div class="label">Workers to match their hourly</div>
+          <div class="value" id="workersHourly">—</div>
+        </div>
+      </div>
+      <p class="fineprint">Role wages are placeholders for illustration; edit them in <code>app.js</code> or type your own.</p>
+    </section>
+
+    <section class="card">
+      <h2>5) What You Could Buy</h2>
+      <div class="form-grid">
+        <label for="itemSelect">
+          Choose an item
+          <select id="itemSelect">
+            <option value="0">— choose —</option>
+            <option value="300000">House (mid-market)</option>
+            <option value="30000">Car (new compact)</option>
+            <option value="1500">Laptop</option>
+            <option value="50">Grocery shop</option>
+            <option value="3">Coffee</option>
+          </select>
+        </label>
+        <label for="itemPrice">
+          Or enter a price
+          <div class="input-wrap">
+            <span class="prefix" id="currencyPrefixItem">€</span>
+            <input id="itemPrice" type="number" min="0" step="1" placeholder="e.g. 350000" />
+          </div>
+        </label>
+      </div>
+      <div class="stats-grid">
+        <div class="stat">
+          <div class="label"><span id="billionaireNameD">Jeff Bezos</span> time to “earn” this</div>
+          <div class="value" id="billTimeToItem">—</div>
+        </div>
+        <div class="stat">
+          <div class="label">Your time to “earn” this</div>
+          <div class="value" id="youTimeToItem">—</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>6) Simple Experiment: Tax Parity</h2>
+      <div class="form-grid">
+        <label for="taxRate">
+          Your effective tax rate (%)
+          <input id="taxRate" type="range" min="0" max="60" step="1" value="25" />
+          <div class="small-label">We’ll apply this to the estimated annual income of the selected billionaire.</div>
+        </label>
+      </div>
+      <div class="stats-grid">
+        <div class="stat">
+          <div class="label">After‑tax income (if paying your rate)</div>
+          <div class="value" id="afterTaxIncome">—</div>
+          <div class="sub" id="afterTaxDelta">—</div>
+        </div>
+      </div>
+      <p class="fineprint">This is a thought experiment on estimated annual income (not net worth). It’s just to visualize scale.</p>
+    </section>
+
+    <section class="card">
+      <h2>About & Learn More</h2>
+      <p>For perspectives on inequality and taxation:</p>
+      <ul>
+        <li><a href="https://www.oxfam.org/inequality" target="_blank" rel="noopener">Oxfam: Inequality</a></li>
+        <li><a href="https://wid.world" target="_blank" rel="noopener">World Inequality Database</a></li>
+        <li><a href="https://taxjustice.net" target="_blank" rel="noopener">Tax Justice Network</a></li>
       </ul>
     </section>
   </main>
 
   <footer class="container footer">
-    <div>© <span id="year"></span> How Much Harder. Built for laughs and perspective.</div>
-    <div><a href="#" id="shareBtn">Share my result</a></div>
+    <div>© <span id="year"></span> How Much Harder.</div>
+    <div class="coffee">
+      <button id="coffeeBtn" class="ghost">Buy me a coffee</button>
+      <div id="coffeeMsg" class="coffee-msg"></div>
+    </div>
+    <div><a href="#" id="shareBtn">Share this view</a><a href="#" id="resetLink" style="margin-left:1rem">Reset</a></div>
   </footer>
 
-  <script src="app.js"></script>
+  <script src="app.js" defer></script>
 </body>
 </html>
